@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login — URL27X</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="brand">URL27X</div>
+    <a class="button secondary" href="/">Home</a>
+  </header>
+
+  <main class="container small-container">
+    <section class="card">
+      <h1>Admin Login</h1>
+      <p class="muted">Sign in to manage your short links.</p>
+
+      <form id="loginForm">
+        <label for="username">Username</label>
+        <input
+          id="username"
+          type="text"
+          autocomplete="username"
+          required
+        >
+
+        <label for="password">Password</label>
+        <input
+          id="password"
+          type="password"
+          autocomplete="current-password"
+          required
+        >
+
+        <button class="button primary full" type="submit">
+          Login
+        </button>
+
+        <div id="message" class="message"></div>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    const form = document.getElementById("loginForm");
+    const message = document.getElementById("message");
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      message.textContent = "Signing in...";
+      message.className = "message";
+
+      try {
+        const response = await fetch("/api/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            username: document.getElementById("username").value.trim(),
+            password: document.getElementById("password").value
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Login failed.");
+        }
+
+        window.location.href = "/admin.html";
+      } catch (error) {
+        message.textContent = error.message;
+        message.className = "message error";
+      }
+    });
+  </script>
+</body>
+</html>
