@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>URL27X — URL Shortener</title>
+  <meta name="description" content="Fast and simple URL shortener">
+  <link rel="stylesheet" href="/style.css">
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="brand">URL27X</div>
+    <a class="button secondary" href="/login.html">Admin Login</a>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <h1>Shorten your URL</h1>
+      <p>Create a clean short link in seconds.</p>
+
+      <form id="shortenForm" class="card">
+        <label for="url">Long URL</label>
+        <input
+          id="url"
+          name="url"
+          type="url"
+          placeholder="https://example.com/your-long-link"
+          required
+        >
+
+        <label for="code">Custom short code <span>(optional)</span></label>
+        <input
+          id="code"
+          name="code"
+          type="text"
+          placeholder="my-link"
+          maxlength="50"
+          pattern="[A-Za-z0-9_-]+"
+        >
+
+        <label for="title">Title <span>(optional)</span></label>
+        <input
+          id="title"
+          name="title"
+          type="text"
+          placeholder="My website"
+          maxlength="200"
+        >
+
+        <button class="button primary" type="submit">
+          Create short link
+        </button>
+
+        <div id="message" class="message"></div>
+      </form>
+
+      <div id="result" class="card result hidden">
+        <h2>Your short link</h2>
+        <div class="result-row">
+          <input id="shortUrl" type="text" readonly>
+          <button id="copyButton" class="button secondary" type="button">
+            Copy
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const form = document.getElementById("shortenForm");
+    const message = document.getElementById("message");
+    const result = document.getElementById("result");
+    const shortUrl = document.getElementById("shortUrl");
+    const copyButton = document.getElementById("copyButton");
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      message.textContent = "Creating...";
+      message.className = "message";
+      result.classList.add("hidden");
+
+      const data = {
+        url: document.getElementById("url").value.trim(),
+        code: document.getElementById("code").value.trim(),
+        title: document.getElementById("title").value.trim()
+      };
+
+      try {
+        const response = await fetch("/api/links", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(data)
+        });
+
+        const json = await response.json();
+
+        if (!response.ok) {
+          throw new Error(json.error || "Unable to create short link.");
+        }
+
+        shortUrl.value = json.shortUrl;
+        result.classList.remove("hidden");
+
+        message.textContent = "Short link created successfully.";
+        message.className = "message success";
+
+        form.reset();
+      } catch (error) {
+        message.textContent = error.message;
+        message.className = "message error";
+      }
+    });
+
+    copyButton.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(shortUrl.value);
+        copyButton.textContent = "Copied!";
+        setTimeout(() => {
+          copyButton.textContent = "Copy";
+        }, 1500);
+      } catch {
+        shortUrl.select();
+        document.execCommand("copy");
+        copyButton.textContent = "Copied!";
+      }
+    });
+  </script>
+</body>
+</html>
