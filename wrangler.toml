@@ -1,0 +1,10 @@
+name = "url27x"
+
+compatibility_date = "2026-08-26"
+
+pages_build_output_dir = "."
+
+[[d1_databases]]
+binding = "DB"
+database_name = "links"
+database_id = "0900f552-03d0-4991-8f11-976822904527"
