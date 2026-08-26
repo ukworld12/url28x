@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Dashboard — URL27X</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="top"><div><strong>URL27X</strong><span class="muted"> Dashboard</span></div><button id="logout" class="ghost">Logout</button></header>
+<main class="wrap">
+  <section class="grid stats">
+    <div class="stat"><span>Total links</span><b id="totalLinks">0</b></div>
+    <div class="stat"><span>Total clicks</span><b id="totalClicks">0</b></div>
+    <div class="stat live"><span>Live clicks · 60s</span><b id="liveClicks">0</b></div>
+  </section>
+
+  <section class="card">
+    <div class="row between"><h2 id="formTitle">Create short link</h2><button id="cancel" class="ghost hidden">Cancel edit</button></div>
+    <form id="linkForm">
+      <input id="editId" type="hidden">
+      <div class="two">
+        <label>Long URL<input id="target" type="url" placeholder="https://example.com/page" required></label>
+        <label>Custom code <small>(optional)</small><input id="code" pattern="[A-Za-z0-9_-]{2,64}" placeholder="my-link"></label>
+      </div>
+      <div class="two">
+        <label>Title <small>(shown in social preview)</small><input id="title" maxlength="160" placeholder="My campaign"></label>
+        <label>Expiration <small>(optional)</small><input id="expires" type="datetime-local"></label>
+      </div>
+      <label>OG image <small>(JPG, PNG, WEBP · max 5 MB)</small><input id="image" type="file" accept="image/jpeg,image/png,image/webp"></label>
+      <div id="preview" class="preview hidden"></div>
+      <button class="button" type="submit" id="save">Create short link</button>
+      <p id="formMsg" class="error"></p>
+    </form>
+  </section>
+
+  <section class="card">
+    <div class="row between"><h2>Your links</h2><input id="search" class="search" placeholder="Search..."></div>
+    <div id="links"></div>
+  </section>
+</main>
+<script>
+let allLinks=[];
+const $=s=>document.querySelector(s);
+async function api(url,opt={}){const r=await fetch(url,opt); if(r.status===401){location.href='/login.html';throw Error('login')}; const d=await r.json().catch(()=>({})); if(!r.ok) throw Error(d.error||'Request failed'); return d}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function render(){
+ const q=$('#search').value.toLowerCase(); const items=allLinks.filter(x=>(x.code+' '+x.title+' '+x.target_url).toLowerCase().includes(q));
+ $('#links').innerHTML=items.length?items.map(x=>`<article class="linkrow">
+   <div class="thumb">${x.og_url?`<img src="${esc(x.og_url)}" alt="">`:'↗'}</div>
+   <div class="grow"><b>${esc(x.title||x.code)}</b><div><a href="/${encodeURIComponent(x.code)}" target="_blank">${location.origin}/${esc(x.code)}</a></div><small>${esc(x.target_url)}</small><div class="chips"><span>${x.clicks} clicks</span>${x.expires_at?`<span>expires ${esc(new Date(x.expires_at).toLocaleString())}</span>`:''}</div></div>
+   <div class="actions"><button onclick="editLink(${x.id})">Edit</button><button onclick="copyLink('${encodeURIComponent(x.code)}')">Copy</button><button class="danger" onclick="delLink(${x.id})">Delete</button></div>
+ </article>`).join(''):'<p class="muted">No links yet.</p>';
+}
+async function load(){const d=await api('/api/links'); allLinks=d.links; $('#totalLinks').textContent=d.total_links; $('#totalClicks').textContent=d.total_clicks; render(); refreshLive();}
+async function refreshLive(){try{const d=await api('/api/analytics/live'); $('#liveClicks').textContent=d.live_clicks}catch{}}
+function editLink(id){const x=allLinks.find(a=>a.id===id); if(!x)return; $('#editId').value=x.id; $('#target').value=x.target_url; $('#code').value=x.code; $('#title').value=x.title; $('#expires').value=x.expires_at?new Date(x.expires_at).toISOString().slice(0,16):''; $('#formTitle').textContent='Edit short link'; $('#save').textContent='Save changes'; $('#cancel').classList.remove('hidden'); scrollTo({top:0,behavior:'smooth'});}
+$('#cancel').onclick=()=>{ $('#editId').value=''; $('#linkForm').reset(); $('#formTitle').textContent='Create short link'; $('#save').textContent='Create short link'; $('#cancel').classList.add('hidden');}
+$('#search').oninput=render;
+$('#logout').onclick=async()=>{await fetch('/api/auth/logout',{method:'POST'});location.href='/login.html'};
+window.copyLink=async code=>{await navigator.clipboard.writeText(location.origin+'/'+decodeURIComponent(code)); alert('Copied');};
+window.delLink=async id=>{if(!confirm('Delete this link?'))return; await api('/api/links/'+id,{method:'DELETE'});load();};
+$('#linkForm').onsubmit=async e=>{
+ e.preventDefault(); $('#formMsg').textContent='';
+ try{
+  let og_key='';
+  const file=$('#image').files[0];
+  if(file){if(file.size>5*1024*1024)throw Error('Image is larger than 5 MB'); const fd=new FormData();fd.append('image',file);const u=await api('/api/upload',{method:'POST',body:fd});og_key=u.key}
+  const body={target_url:$('#target').value.trim(),code:$('#code').value.trim(),title:$('#title').value.trim(),expires_at:$('#expires').value?new Date($('#expires').value).toISOString():null};
+  if(og_key)body.og_key=og_key;
+  const id=$('#editId').value; await api(id?'/api/links/'+id:'/api/links',{method:id?'PUT':'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+  $('#cancel').click(); await load();
+ }catch(err){$('#formMsg').textContent=err.message}
+};
+load(); setInterval(refreshLive,5000); setInterval(load,30000);
+</script>
+</body>
+</html>
