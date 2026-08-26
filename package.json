@@ -1,12 +1,11 @@
 {
-  "name": "url27x",
+  "name": "url28x",
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "wrangler pages dev .",
-    "deploy": "wrangler pages deploy ."
+    "dev": "wrangler pages dev ."
   },
   "devDependencies": {
-    "wrangler": "^4.0.0"
+    "wrangler": "^4.126.0"
   }
 }
