@@ -5,14 +5,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "shortlinks",
-      "database_id": "33e54d58-8787-4f94-883d-e27ba40a2794"
-    }
-  ],
-  "r2_buckets": [
-    {
-      "binding": "MEDIA",
-      "bucket_name": "shortlink-media"
+      "database_name": "links",
+      "database_id": "0900f552-03d0-4991-8f11-976822904527"
     }
   ]
 }
